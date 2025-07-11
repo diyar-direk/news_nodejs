@@ -6,6 +6,7 @@ const {
   getUser,
   deleteUsers,
   login,
+  updateUser,
 } = require("../controller/usersController");
 const allowdTo = require("../middleware/allowdTo");
 router

@@ -25,7 +25,7 @@ const getUser = async (req, res) => {
     const user = await User.findById(id).populate("createdBy");
     if (!user)
       return res.status(404).json({ data: null, message: "user not found" });
-    return res.json({ data: user, success });
+    return res.json({ data: user, success: success });
   } catch (error) {
     console.log(error);
     return res.json({ message: error.message }).status(500);
@@ -43,7 +43,7 @@ const deleteUsers = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error." });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -77,7 +77,7 @@ const register = async (req, res) => {
 
     return res
       .status(201)
-      .json({ data, success, message: "created succesfuly" });
+      .json({ data, success: success, message: "created succesfuly" });
   } catch (error) {
     console.log(error);
 
@@ -109,7 +109,7 @@ const login = async (req, res) => {
       process.env.JWT_SECRET_KEY,
       { expiresIn: "1h" }
     );
-    return res.json({ success, user: findUser, token });
+    return res.json({ success: success, user: findUser, token });
   } catch (error) {
     console.log(error);
     return res
@@ -118,4 +118,41 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { getAllUsers, register, getUser, deleteUsers, login };
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, role } = req.body;
+    if (role && (role !== "admin" || role !== "user"))
+      return res
+        .status(400)
+        .json({ data: null, message: "user role must be admin or user only" });
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        firstName,
+        lastName,
+        role,
+      },
+      { new: true, select: "-password -__v" }
+    );
+    if (!user)
+      return res.status(404).json({ data: null, message: "user not found" });
+    return res.json({
+      success,
+      data: user,
+      message: "updated succesfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  getAllUsers,
+  register,
+  getUser,
+  deleteUsers,
+  login,
+  updateUser,
+};
