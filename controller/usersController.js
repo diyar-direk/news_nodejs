@@ -8,9 +8,10 @@ const getAllUsers = async (req, res) => {
     const limit = query.limit || 10;
     const page = query.page || 1;
     const skip = (page - 1) * limit;
-    const allUsers = await User.find({}, { __v: false, password: false })
+    const allUsers = await User.find({}, { __v: false })
       .limit(limit)
-      .skip(skip);
+      .skip(skip)
+      .populate("createdBy");
     return res.json({ data: allUsers, dataLength: allUsers.length, success });
   } catch (error) {
     console.log(error);
@@ -21,7 +22,7 @@ const getUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
+    const user = await User.findById(id).populate("createdBy");
     if (!user)
       return res.status(404).json({ data: null, message: "user not found" });
     return res.json({ data: user, success });
@@ -33,8 +34,6 @@ const getUser = async (req, res) => {
 
 const deleteUsers = async (req, res) => {
   try {
-    console.log(req.body);
-
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0)
       return res.status(400).json({ message: "ids must be not empty array" });
@@ -57,9 +56,8 @@ const register = async (req, res) => {
     if (isUserExist) {
       const isemailtaken = bodyRequest.email === isUserExist.email;
       return res.status(500).json({
-        data: null,
-        success: faild,
         message: `this ${isemailtaken ? "email" : "username"} already exist`,
+        success: faild,
       });
     }
     const { password } = bodyRequest;
@@ -68,8 +66,13 @@ const register = async (req, res) => {
         .status(500)
         .json({ data: null, success: faild, message: "password is to short" });
     const newPassword = await bcrypt.hash(password, 8);
+    const currentUser = req.currentUser;
 
-    const data = new User({ ...bodyRequest, password: newPassword });
+    const data = new User({
+      ...bodyRequest,
+      password: newPassword,
+      createdBy: currentUser.id,
+    });
     await data.save();
 
     return res
@@ -89,7 +92,7 @@ const login = async (req, res) => {
     const { username, password } = req.body;
     const findUser = await User.findOne({
       $or: [{ username }, { email: username }],
-    });
+    }).select("+password");
 
     if (!findUser)
       return res.status(404).json({ data: null, message: "no user found" });
@@ -100,7 +103,6 @@ const login = async (req, res) => {
         .json({ data: null, message: "wrong username or password" });
     const token = jwt.sign(
       {
-        username,
         id: findUser._id,
         role: findUser.role,
       },

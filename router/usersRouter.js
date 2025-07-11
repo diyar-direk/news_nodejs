@@ -7,9 +7,13 @@ const {
   deleteUsers,
   login,
 } = require("../controller/usersController");
-router.route("/").get(getAllUsers).post(register);
-router.route("/:id").get(getUser);
-router.route("/delete-many").delete(deleteUsers);
+const allowdTo = require("../middleware/allowdTo");
+router
+  .route("/")
+  .get(allowdTo(["admin"]), getAllUsers)
+  .post(allowdTo(["admin"]), register);
+router.route("/:id").get(allowdTo(["admin"]), getUser);
+router.route("/delete-many").delete(allowdTo(["admin"]), deleteUsers);
 router.route("/login").post(login);
 
 module.exports = router;
