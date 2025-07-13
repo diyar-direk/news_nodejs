@@ -5,19 +5,47 @@ const { success, faild } = require("../utils/resStatus");
 const getAllUsers = async (req, res) => {
   try {
     const { query } = req;
-    const limit = query.limit || 10;
-    const page = query.page || 1;
+
+    const limit = parseInt(query.limit) || 10;
+    const page = parseInt(query.page) || 1;
     const skip = (page - 1) * limit;
-    const allUsers = await User.find({}, { __v: false })
+
+    const search = query.search || "";
+
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { username: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (query.role) {
+      filter.role = query.role;
+    }
+
+    const totalUsers = await User.countDocuments(filter);
+
+    const allUsers = await User.find(filter, { __v: false })
       .limit(limit)
       .skip(skip)
       .populate("createdBy");
-    return res.json({ data: allUsers, dataLength: allUsers.length, success });
+
+    return res.json({
+      success: true,
+      results: allUsers.length,
+      total: totalUsers,
+      data: allUsers,
+    });
   } catch (error) {
     console.log(error);
-    return res.json({ message: error.message, success: faild }).status(500);
+    return res.status(500).json({
+      message: error.message,
+      success: false,
+    });
   }
 };
+
 const getUser = async (req, res) => {
   try {
     const { id } = req.params;
