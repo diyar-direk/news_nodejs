@@ -13,7 +13,10 @@ router
   .route("/")
   .get(allowdTo(["admin"]), getAllUsers)
   .post(allowdTo(["admin"]), register);
-router.route("/:id").get(allowdTo(["admin"]), getUser);
+router
+  .route("/:id")
+  .get(allowdTo(["admin"]), getUser)
+  .patch(allowdTo(["admin"]), updateUser);
 router.route("/delete-many").delete(allowdTo(["admin"]), deleteUsers);
 router.route("/login").post(login);
 

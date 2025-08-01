@@ -2,47 +2,46 @@ const User = require("../model/userModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { success, faild } = require("../utils/resStatus");
+const APIFeatures = require("../utils/apiFeatures");
+const search = require("../utils/search");
+
 const getAllUsers = async (req, res) => {
+  if (req.query.search) {
+    return await search(
+      User,
+      ["username", "firstName", "lastName"],
+      "createdBy",
+      req,
+      res
+    );
+  }
   try {
-    const { query } = req;
-
-    const limit = parseInt(query.limit) || 10;
-    const page = parseInt(query.page) || 1;
-    const skip = (page - 1) * limit;
-
-    const search = query.search || "";
-
-    const filter = {};
-
-    if (search) {
-      filter.$or = [
-        { username: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ];
-    }
-    if (query.role) {
-      filter.role = query.role;
-    }
-
-    const totalUsers = await User.countDocuments(filter);
-
-    const allUsers = await User.find(filter, { __v: false })
-      .limit(limit)
-      .skip(skip)
-      .populate("createdBy");
-
-    return res.json({
-      success: true,
-      results: allUsers.length,
-      total: totalUsers,
-      data: allUsers,
+    const queryObj = req.query;
+    const excludedFields = ["page", "sort", "limit", "fields", "month"];
+    excludedFields.forEach((el) => delete queryObj[el]);
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    const parsedQuery = JSON.parse(queryStr);
+    const features = new APIFeatures(
+      User.find().lean().populate("createdBy"),
+      req.query
+    )
+      .paginate()
+      .sort()
+      .fields()
+      .filter();
+    const [users, totalCount] = await Promise.all([
+      features.query,
+      User.countDocuments(parsedQuery),
+    ]);
+    res.status(200).json({
+      status: "success",
+      results: users.length,
+      totalCount,
+      data: users,
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: error.message,
-      success: false,
-    });
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -137,12 +136,20 @@ const login = async (req, res) => {
       process.env.JWT_SECRET_KEY,
       { expiresIn: "1h" }
     );
-    return res.json({ success: success, user: findUser, token });
+    const user = findUser.toObject();
+    delete user.password;
+    delete user.__v;
+    return res.json({
+      success: true,
+      user,
+      token,
+      message: `welcome back ${user.firstName} ${user.lastName}`,
+    });
   } catch (error) {
     console.log(error);
     return res
       .status(500)
-      .json({ data: null, success: faild, message: error.message });
+      .json({ data: null, success: false, message: error.message });
   }
 };
 
