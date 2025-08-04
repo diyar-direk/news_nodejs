@@ -71,5 +71,30 @@ const deleteVideo = async (req, res) => {
     res.json({ message: error.message }).status(500);
   }
 };
+const profileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const imagePath = path.join(__dirname, "../public/images");
+    fs.mkdirSync(imagePath, { recursive: true });
+    cb(null, imagePath);
+  },
+  filename: (req, file, cb) => {
+    const filename = `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
+    cb(null, filename);
+  },
+});
+const uploadUserProfile = multer({
+  storage: profileStorage,
+  fileFilter: (req, file, cb) => {
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    const allowedExtensions = [".png", ".jpg", ".jpeg"];
+    if (!allowedExtensions.includes(fileExtension)) {
+      return cb(
+        new Error("Only .png, .jpg, and .jpeg formats are allowed!"),
+        false
+      );
+    }
+    cb(null, true);
+  },
+});
 
-module.exports = { upload, deleteImage, deleteVideo };
+module.exports = { upload, deleteImage, deleteVideo, uploadUserProfile };

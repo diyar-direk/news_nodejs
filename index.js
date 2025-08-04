@@ -15,16 +15,22 @@ app.use(express.json());
 const usersRouter = require("./router/usersRouter");
 const categoriesRouter = require("./router/categoriesRouter");
 const newsRouter = require("./router/newsRouter");
-app.use(helmet());
+const commentRouter = require("./router/commentRouter");
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 app.use("/videos", express.static(path.join(__dirname, "public/videos")));
 app.use("/api/users", usersRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/news", newsRouter);
+app.use("/api/comments", commentRouter);
 
 app.use((req, res) => {
   res.status(404).json({
-    message: "no route found",
+    message: "rout not found",
     data: null,
     code: 404,
   });

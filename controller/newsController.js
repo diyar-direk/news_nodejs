@@ -77,7 +77,13 @@ const createNews = async (req, res) => {
   try {
     const { body } = req;
     const { files } = req;
-    const images = files.images || [];
+    const images = files.images;
+
+    if (!images || images?.length === 0)
+      return res
+        .status(400)
+        .json({ message: "you have to add one image atlest" });
+
     const video = files.video ? files.video[0].filename : "";
     const currentUserId = req.currentUser.id;
     if (!body.publishedAt) {
