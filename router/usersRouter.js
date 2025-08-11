@@ -17,6 +17,7 @@ const {
   deleteUsers,
   login,
   updateUser,
+  getUserDetails,
 } = require("../controller/usersController");
 const allowdTo = require("../middleware/allowdTo");
 const { uploadUserProfile } = require("../controller/mediaController");
@@ -31,5 +32,6 @@ router
   .patch(allowdTo(["admin"]), handleMulterError, updateUser);
 
 router.route("/login").post(login);
+router.route("/profile/me").get(allowdTo(["user", "admin"]), getUserDetails);
 
 module.exports = router;

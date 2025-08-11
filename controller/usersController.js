@@ -231,6 +231,26 @@ const updateUser = async (req, res) => {
   }
 };
 
+const getUserDetails = async (req, res) => {
+  try {
+    const user = await User.findById(req.currentUser.id).select(
+      "-password -__v"
+    );
+    if (!user)
+      return res.status(404).json({ data: null, message: "user not found" });
+    return res.json({
+      success: true,
+      data: user,
+      message: "user details fetched successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ data: null, success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   register,
@@ -238,6 +258,7 @@ module.exports = {
   deleteUsers,
   login,
   updateUser,
+  getUserDetails,
 };
 
 const removeProfileOnCreateError = (profile) => {
